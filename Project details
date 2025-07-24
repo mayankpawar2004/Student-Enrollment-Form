@@ -1,0 +1,16 @@
+Project: Student Enrollment Form
+Database: SCHOOL-DB
+Relation: STUDENT-TABLE
+Primary Key: Roll-No
+Input Fields: Roll-No, Full-Name, Class, Birth-Date, Address, Enrollment-Date
+
+Final Output Features:
+[Save], [Update], and [Reset] buttons
+
+Auto-check if Roll No exists in DB
+
+Conditional enable/disable of fields
+
+Validation for empty fields
+
+JPDB integration
