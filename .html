@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Enrollment Form</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://login2explore.com/jpdb-commons.js"></script>
+</head>
+<body>
+  <h2>Student Enrollment Form</h2>
+  <form id="studentForm">
+    <label>Roll No:</label><br>
+    <input type="text" id="rollNo" /><br><br>
+
+    <label>Full Name:</label><br>
+    <input type="text" id="fullName" disabled /><br><br>
+
+    <label>Class:</label><br>
+    <input type="text" id="studentClass" disabled /><br><br>
+
+    <label>Birth Date:</label><br>
+    <input type="date" id="birthDate" disabled /><br><br>
+
+    <label>Address:</label><br>
+    <input type="text" id="address" disabled /><br><br>
+
+    <label>Enrollment Date:</label><br>
+    <input type="date" id="enrollDate" disabled /><br><br>
+
+    <button type="button" id="saveBtn" onclick="saveData()" disabled>Save</button>
+    <button type="button" id="updateBtn" onclick="updateData()" disabled>Update</button>
+    <button type="button" id="resetBtn" onclick="resetForm()" disabled>Reset</button>
+  </form>
+
+  <script>
+    const DB_NAME = "SCHOOL-DB";
+    const RELATION_NAME = "STUDENT-TABLE";
+    const BASE_URL = "http://api.login2explore.com:5577";
+    const JPDB_IRL = "/api/irl";
+    const JPDB_IML = "/api/iml";
+    const TOKEN = "YOUR_CONNECTION_TOKEN_HERE"; // Replace with your token
+
+    let recordNo = null;
+
+    function disableAllFieldsExceptRoll() {
+      $("#fullName, #studentClass, #birthDate, #address, #enrollDate").prop("disabled", true);
+      $("#saveBtn, #updateBtn, #resetBtn").prop("disabled", true);
+      $("#rollNo").prop("disabled", false).focus();
+    }
+
+    function resetForm() {
+      $("#studentForm")[0].reset();
+      disableAllFieldsExceptRoll();
+    }
+
+    function validateForm() {
+      return $("#rollNo, #fullName, #studentClass, #birthDate, #address, #enrollDate").toArray().every(
+        (field) => field.value.trim() !== ""
+      );
+    }
+
+    function getStudentJsonObj() {
+      return {
+        "Roll-No": $("#rollNo").val().trim(),
+        "Full-Name": $("#fullName").val().trim(),
+        "Class": $("#studentClass").val().trim(),
+        "Birth-Date": $("#birthDate").val(),
+        "Address": $("#address").val().trim(),
+        "Enrollment-Date": $("#enrollDate").val()
+      };
+    }
+
+    function fillFormData(data) {
+      $("#fullName").val(data["Full-Name"]);
+      $("#studentClass").val(data["Class"]);
+      $("#birthDate").val(data["Birth-Date"]);
+      $("#address").val(data["Address"]);
+      $("#enrollDate").val(data["Enrollment-Date"]);
+    }
+
+    function checkRollNo() {
+      let roll = $("#rollNo").val().trim();
+      if (roll === "") {
+        alert("Please enter Roll No.");
+        return;
+      }
+
+      let getRequest = createGET_BY_KEYRequest(TOKEN, DB_NAME, RELATION_NAME, JSON.stringify({ "Roll-No": roll }));
+      jQuery.ajaxSetup({ async: false });
+      let res = executeCommandAtGivenBaseUrl(getRequest, BASE_URL, JPDB_IRL);
+      jQuery.ajaxSetup({ async: true });
+
+      if (res.status === 400) {
+        // New record
+        $("#fullName, #studentClass, #birthDate, #address, #enrollDate").prop("disabled", false);
+        $("#saveBtn, #resetBtn").prop("disabled", false);
+        $("#rollNo").prop("disabled", true);
+        $("#fullName").focus();
+      } else if (res.status === 200) {
+        // Existing record
+        recordNo = JSON.parse(res.data).rec_no;
+        let data = JSON.parse(res.data).record;
+        fillFormData(data);
+        $("#rollNo").prop("disabled", true);
+        $("#fullName, #studentClass, #birthDate, #address, #enrollDate").prop("disabled", false);
+        $("#updateBtn, #resetBtn").prop("disabled", false);
+        $("#fullName").focus();
+      } else {
+        alert("Error connecting to database.");
+      }
+    }
+
+    function saveData() {
+      if (!validateForm()) {
+        alert("All fields are required.");
+        return;
+      }
+
+      let jsonStr = getStudentJsonObj();
+      let putRequest = createPUTRequest(TOKEN, JSON.stringify(jsonStr), DB_NAME, RELATION_NAME);
+      jQuery.ajaxSetup({ async: false });
+      let res = executeCommandAtGivenBaseUrl(putRequest, BASE_URL, JPDB_IML);
+      jQuery.ajaxSetup({ async: true });
+
+      if (res.status === 200) {
+        alert("Data saved successfully.");
+        resetForm();
+      } else {
+        alert("Save failed.");
+      }
+    }
+
+    function updateData() {
+      if (!validateForm()) {
+        alert("All fields are required.");
+        return;
+      }
+
+      let jsonStr = getStudentJsonObj();
+      let updateRequest = createUPDATERecordRequest(TOKEN, JSON.stringify(jsonStr), DB_NAME, RELATION_NAME, recordNo);
+      jQuery.ajaxSetup({ async: false });
+      let res = executeCommandAtGivenBaseUrl(updateRequest, BASE_URL, JPDB_IML);
+      jQuery.ajaxSetup({ async: true });
+
+      if (res.status === 200) {
+        alert("Record updated successfully.");
+        resetForm();
+      } else {
+        alert("Update failed.");
+      }
+    }
+
+    $(document).ready(function () {
+      disableAllFieldsExceptRoll();
+
+      $("#rollNo").on("change", function () {
+        checkRollNo();
+      });
+    });
+  </script>
+</body>
+</html>
